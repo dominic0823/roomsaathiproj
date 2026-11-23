@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Chat - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <h1>Chat &mdash; {{ booking.service.title }}</h1>
+  <p class="muted">You're chatting with <strong>{{ other_user.username }}</strong> &middot; {{ booking.when_label }}. Never pay outside RoomSaathi.</p>
+  <div class="chat-window" id="chat-window" data-room-id="{{ room.id }}">
+    <div class="chat-status" id="chat-status" hidden>Reconnecting&hellip;</div>
+    <div class="chat-messages" id="chat-messages">
+      {% for message in messages_qs %}
+        <div class="chat-message {% if message.sender == user %}mine{% endif %}">
+          <span class="chat-sender">{{ message.sender.username }}</span>
+          <span class="chat-text">{{ message.content }}</span>
+          <span class="chat-time">{{ message.timestamp|time:"H:i" }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    <form id="chat-form" class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" maxlength="1000">
+      <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+  </div>
+</section>
+{{ user.username|json_script:"current-username" }}
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/chat.js' %}"></script>{% endblock %}

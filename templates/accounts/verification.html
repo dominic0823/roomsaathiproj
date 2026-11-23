@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Owner verification - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card">
+    <h1>Owner verification</h1>
+    {% if user.is_verified %}
+      <p><span class="badge badge-verified inline">&#10003; Verified owner</span></p>
+      <p>Your listings show the verified badge. Verified owners get more trust &mdash; and more bookings.</p>
+    {% elif user.verification_requested %}
+      <p class="muted">Your request is with our team. We'll call you on <strong>{{ user.phone_number }}</strong> to complete verification.</p>
+    {% else %}
+      <p class="muted">Verified owners get a badge on every listing, and tenants can filter for them. Tell us how to reach you; our team will confirm you own or manage the property.</p>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="form-group"><label>{{ field.label }}</label>{{ field }}
+            {% if field.errors %}<p class="field-error">{{ field.errors.0 }}</p>{% endif %}</div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-block">Request verification</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

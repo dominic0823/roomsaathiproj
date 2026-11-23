@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Secure payment - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="pay-layout">
+    <aside class="pay-summary">
+      <p class="eyebrow">Order summary</p>
+      <h2>{{ booking.service.title }}</h2>
+      <p class="muted small">&#128205; {{ booking.service.location|default:booking.service.city }}, {{ booking.service.city }}</p>
+      <div class="pay-lines">
+        <div><span>{% if booking.is_rental %}Room booking advance{% else %}Visit token{% endif %}</span><b>&#8377;{{ booking.total_price|floatformat:"-2g" }}</b></div>
+        <div><span>{{ booking.when_label }}</span><span></span></div>
+        {% if booking.is_rental %}<div><span>Adjusted against first month's rent</span><span>&#8377;{{ booking.monthly_rent|floatformat:"-2g" }}</span></div>{% endif %}
+        <div class="pay-total"><span>Total payable now</span><b>&#8377;{{ booking.total_price|floatformat:"-2g" }}</b></div>
+      </div>
+      <p class="muted small">Order <code>{{ payment.razorpay_order_id }}</code></p>
+      <p class="pay-timer">Complete payment before <b>{{ expires_at|date:"d M, H:i" }}</b> or the hold is released.</p>
+      <p class="muted small">{% if booking.is_rental %}Refundable if you cancel 3+ days before move-in.{% else %}Refundable if you cancel before the visit.{% endif %}</p>
+    </aside>
+
+    <div class="pay-card">
+      <div class="pay-head"><b>&#128274; RoomSaathi Pay</b><span class="tag">Demo gateway &middot; no real money</span></div>
+      {% if retry %}<div class="alert alert-error">Your last payment attempt failed. No money was taken. Please try again.</div>{% endif %}
+      <form method="post" action="{% url 'payments:demo_pay' booking.id %}" id="pay-form" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="method" id="pay-method" value="upi">
+        <div class="pay-tabs">
+          <button type="button" class="pay-tab active" data-method="upi">UPI</button>
+          <button type="button" class="pay-tab" data-method="card">Card</button>
+          <button type="button" class="pay-tab" data-method="netbanking">Net banking</button>
+          <button type="button" class="pay-tab" data-method="wallet">Wallet</button>
+        </div>
+
+        <div class="pay-pane" data-pane="upi">
+          <div class="form-group"><label>UPI ID</label><input type="text" name="upi" id="upi-input" placeholder="yourname@upi" value="demo@upi"></div>
+          <p class="muted small">Any ID like <code>name@bank</code> works in demo mode.</p>
+        </div>
+
+        <div class="pay-pane" data-pane="card" hidden>
+          <div class="form-group"><label>Card number</label><input type="text" name="card_number" id="card-number" inputmode="numeric" placeholder="1234 5678 9012 3456" maxlength="23"></div>
+          <div class="pay-row">
+            <div class="form-group"><label>Expiry (MM/YY)</label><input type="text" name="expiry" id="card-expiry" placeholder="MM/YY" maxlength="5"></div>
+            <div class="form-group"><label>CVV</label><input type="password" name="cvv" id="card-cvv" inputmode="numeric" placeholder="123" maxlength="4"></div>
+          </div>
+          <div class="form-group"><label>Name on card</label><input type="text" name="card_name" id="card-name" placeholder="As printed on the card"></div>
+          <button type="button" class="chip" id="fill-card">Use test card</button>
+          <p class="muted small" style="margin-top:8px">Test card <code>{{ test_card }}</code>, expiry <code>{{ expiry_example }}</code>, any CVV. Only the last 4 digits are kept.</p>
+        </div>
+
+        <div class="pay-pane" data-pane="netbanking" hidden>
+          <div class="form-group"><label>Choose your bank</label>
+            <div class="pay-options">{% for b in banks %}<label><input type="radio" name="bank" value="{{ b }}" {% if forloop.first %}checked{% endif %}> {{ b }}</label>{% endfor %}</div></div>
+        </div>
+
+        <div class="pay-pane" data-pane="wallet" hidden>
+          <div class="form-group"><label>Choose a wallet</label>
+            <div class="pay-options">{% for w in wallets %}<label><input type="radio" name="wallet" value="{{ w }}" {% if forloop.first %}checked{% endif %}> {{ w }}</label>{% endfor %}</div></div>
+        </div>
+
+        <label class="check pay-fail"><input type="checkbox" name="simulate_fail" value="1"> Simulate a failed payment (for demo)</label>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="pay-btn">Pay &#8377;{{ booking.total_price|floatformat:"-2g" }}</button>
+        <p class="muted small center" style="margin-top:10px">&#128274; 256-bit encrypted. This is a demo gateway: nothing is charged.</p>
+      </form>
+    </div>
+  </div>
+</section>
+<div class="pay-overlay" id="pay-overlay" hidden><div class="pay-spinner"></div><p>Processing your payment&hellip;</p><small>Please don't close this page</small></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var tabs = document.querySelectorAll(".pay-tab"), panes = document.querySelectorAll(".pay-pane"), method = document.getElementById("pay-method");
+  tabs.forEach(function (t) {
+    t.addEventListener("click", function () {
+      tabs.forEach(function (x) { x.classList.toggle("active", x === t); });
+      panes.forEach(function (p) { p.hidden = p.dataset.pane !== t.dataset.method; });
+      method.value = t.dataset.method;
+    });
+  });
+  var num = document.getElementById("card-number"), exp = document.getElementById("card-expiry");
+  num.addEventListener("input", function () { num.value = num.value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim(); });
+  exp.addEventListener("input", function () {
+    var v = exp.value.replace(/\D/g, "").slice(0, 4);
+    exp.value = v.length > 2 ? v.slice(0, 2) + "/" + v.slice(2) : v;
+  });
+  document.getElementById("fill-card").addEventListener("click", function () {
+    num.value = "{{ test_card }}"; exp.value = "{{ expiry_example }}";
+    document.getElementById("card-cvv").value = "123"; document.getElementById("card-name").value = "Demo Tenant";
+  });
+  var form = document.getElementById("pay-form"), sent = false;
+  form.addEventListener("submit", function (e) {
+    if (sent) return;
+    e.preventDefault(); sent = true;
+    document.getElementById("pay-overlay").hidden = false;
+    document.getElementById("pay-btn").disabled = true;
+    setTimeout(function () { form.submit(); }, 1600);
+  });
+});
+</script>
+{% endblock %}

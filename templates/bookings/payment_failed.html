@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Payment failed - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card center">
+    <h1>Payment failed</h1>
+    <p>We couldn't verify your payment for <strong>{{ booking.service.title }}</strong>. Please try again.</p>
+    <a href="{% url 'payments:checkout' booking.id %}" class="btn btn-primary">Retry payment</a>
+  </div>
+</section>
+{% endblock %}

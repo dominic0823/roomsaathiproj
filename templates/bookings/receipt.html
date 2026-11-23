@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Receipt #{{ booking.id }} - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card wide receipt" id="receipt">
+    <h1>{% if booking.is_rental %}Room booking confirmation{% else %}Visit confirmation{% endif %}</h1>
+    <p class="muted">Reference #RS{{ booking.id|stringformat:"05d" }} &middot; booked on {{ booking.created_at|date:"d M Y" }}</p>
+    <table class="receipt-table">
+      <tr><th>Room</th><td>{{ booking.service.title }}, {{ booking.service.location }}</td></tr>
+      <tr><th>Tenant</th><td>{{ booking.customer.get_full_name|default:booking.customer.username }} ({{ booking.customer.phone_number }})</td></tr>
+      <tr><th>Owner</th><td>{{ booking.service.provider.get_full_name|default:booking.service.provider.username }}</td></tr>
+      {% if booking.is_rental %}
+        <tr><th>Move-in</th><td>{{ booking.move_in_date|date:"d M Y" }} for {{ booking.stay_months }} month{{ booking.stay_months|pluralize }} (until {{ booking.stay_end_date|date:"d M Y" }})</td></tr>
+        <tr><th>Monthly rent</th><td>&#8377;{{ booking.monthly_rent|floatformat:"-2g" }}</td></tr>
+        <tr><th>Security deposit</th><td>&#8377;{{ booking.deposit_amount|floatformat:"-2g" }} (pay to owner at move-in)</td></tr>
+        <tr><th>Advance paid online</th><td>&#8377;{{ booking.total_price|floatformat:"-2g" }} (adjusted against first rent)</td></tr>
+      {% else %}
+        <tr><th>Visit</th><td>{{ booking.slot.label }}</td></tr>
+        <tr><th>Token paid</th><td>&#8377;{{ booking.total_price|floatformat:"-2g" }}</td></tr>
+      {% endif %}
+    </table>
+    <p class="muted small">Cancellation: refunds are full if cancelled by the tenant at least 3 days before move-in (or before a visit), and always full if the owner cancels. Never pay outside RoomSaathi.</p>
+    <button class="btn btn-primary" onclick="window.print()">Print / save as PDF</button>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if editing %}Edit room{% else %}List your room{% endif %} - RoomSaathi{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card wide">
+    <h1>{% if editing %}Edit &ldquo;{{ service.title }}&rdquo;{% else %}List your room{% endif %}</h1>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<p class="field-error">{{ form.non_field_errors.0 }}</p>{% endif %}
+      {% for field in form %}
+        {% if field.is_hidden %}{{ field }}{% else %}
+        <div class="form-group {% if field.field.widget.input_type == 'checkbox' %}check-group{% endif %}">
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="muted small">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<p class="field-error">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+        {% if field.name == "location" %}
+          <div class="form-group">
+            <label>Pin the room on the map (helps tenants find you)</label>
+            <div class="picker-tools">
+              <input type="text" id="map-search" placeholder="Search area, e.g. Kamla Nagar Delhi">
+              <button type="button" class="btn btn-outline btn-sm" id="map-search-btn">Search</button>
+              <button type="button" class="btn btn-outline btn-sm" id="map-locate-btn">Use my location</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="map-clear-btn">Clear pin</button>
+            </div>
+            <div id="picker-map" class="map-box" data-lat-input="id_latitude" data-lng-input="id_longitude"></div>
+            <p class="muted small">Click the map to drop a pin. Only the pin is shown, not an exact address.</p>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% if editing and existing_images %}
+        <div class="form-group">
+          <label>Current photos &mdash; tick to remove</label>
+          <div class="existing-images">
+            {% for img in existing_images %}
+              <label class="existing-image"><img src="{{ img.url }}" alt=""><span>{% if img.is_360 %}360&deg; &middot; {% endif %}<input type="checkbox" name="delete_images" value="{{ img.pk }}"> Remove</span></label>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary btn-block">{% if editing %}Save changes{% else %}Save room &amp; add visit slots{% endif %}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/maps.js' %}"></script>
+{% endblock %}

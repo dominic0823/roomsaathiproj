@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Requests & bookings - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <h1>Requests & bookings</h1>
+
+  <h2>Needs your decision {% if needs_action %}<span class="bell-count inline">{{ needs_action|length }}</span>{% endif %}</h2>
+  <div class="booking-list">
+    {% for b in needs_action %}
+      <div class="booking-row request">
+        <div>
+          <p class="eyebrow">Room request</p>
+          <h3>{{ b.service.title }}</h3>
+          <p>{{ b.customer.username }}{% if b.customer.phone_verified %} <span class="badge inline badge-verified">&#10003; phone verified</span>{% endif %} &middot; {{ b.when_label }}</p>
+          <p class="muted small">Rent &#8377;{{ b.monthly_rent|floatformat:"-2g" }}/mo &middot; advance &#8377;{{ b.total_price|floatformat:"-2g" }} &middot; answer by {{ b.expires_at|date:"d M, H:i" }}</p>
+          {% if b.tenant_note %}<p class="quote">&ldquo;{{ b.tenant_note }}&rdquo;</p>{% endif %}
+        </div>
+        <form method="post" class="decision-form">
+          {% csrf_token %}
+          <input type="text" name="note" maxlength="500" placeholder="Note to tenant (optional)">
+          <div class="btn-row">
+            <button class="btn btn-primary btn-sm" type="submit" formaction="{% url 'bookings:approve_booking' b.id %}">Approve</button>
+            <button class="btn btn-outline btn-sm danger" type="submit" formaction="{% url 'bookings:decline_booking' b.id %}">Decline</button>
+            <a class="btn btn-ghost btn-sm" href="{% url 'chatapp:room' b.id %}">Chat</a>
+          </div>
+        </form>
+      </div>
+    {% empty %}
+      <p class="muted">Nothing waiting. New room requests appear here.</p>
+    {% endfor %}
+  </div>
+
+  <h2 style="margin-top:32px">All bookings</h2>
+  <div class="booking-list">
+    {% for b in others %}
+      <div class="booking-row">
+        <div>
+          <p class="eyebrow">{% if b.is_rental %}Room booking{% else %}Visit{% endif %}</p>
+          <h3>{{ b.service.title }}</h3>
+          <p class="muted">{{ b.customer.username }} &middot; {{ b.when_label }}</p>
+          {% if b.status == "CONFIRMED" and b.customer.phone_number %}<p class="muted small">Tenant phone: {{ b.customer.phone_number }}</p>{% endif %}
+        </div>
+        <span class="status-tag status-{{ b.status|lower }}">{{ b.get_status_display }}</span>
+        <div class="booking-actions">
+          {% if b.chat_enabled %}<a href="{% url 'chatapp:room' b.id %}" class="btn btn-outline btn-sm">Chat</a>{% endif %}
+          {% if b.status == "CONFIRMED" %}
+            <a href="{% url 'bookings:receipt' b.id %}" class="btn btn-ghost btn-sm">Receipt</a>
+            <form method="post" action="{% url 'bookings:owner_cancel_booking' b.id %}" onsubmit="return confirm('Cancel this booking? The tenant will be refunded in full.');">{% csrf_token %}<button class="btn btn-ghost btn-sm danger" type="submit">Cancel &amp; refund</button></form>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}<p class="muted">No bookings yet.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

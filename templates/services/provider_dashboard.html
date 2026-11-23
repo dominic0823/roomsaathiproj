@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My listings - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><h1>Owner dashboard</h1>
+    <div class="header-actions">{% if not user.is_verified %}<a href="{% url 'accounts:verification' %}" class="btn btn-outline">Get verified</a>{% endif %}<a href="{% url 'services:create' %}" class="btn btn-primary">+ List a room</a></div></div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="k">Total views</div><div class="v">{{ totals.views }}</div></div>
+    <div class="stat-card"><div class="k">Saved by tenants</div><div class="v">{{ totals.saves }}</div></div>
+    <div class="stat-card"><div class="k">Room requests</div><div class="v">{{ totals.requests }}</div></div>
+    <div class="stat-card"><div class="k">Awaiting your reply</div><div class="v {% if totals.awaiting %}hot{% endif %}">{{ totals.awaiting }}</div>{% if totals.awaiting %}<a class="small" href="{% url 'bookings:provider_bookings' %}">Review now &rarr;</a>{% endif %}</div>
+    <div class="stat-card"><div class="k">Avg. reply time</div><div class="v">{% if reply_hours %}{{ reply_hours }}h{% else %}&mdash;{% endif %}</div></div>
+  </div>
+
+  <div class="service-grid">
+    {% for service in my_services %}
+      <div class="service-card static">
+        <div class="service-thumb">
+          {% with cover=service.cover_url %}{% if cover %}<img src="{{ cover }}" alt="{{ service.title }}">{% else %}<div class="thumb-fallback">{{ service.title|slice:":1" }}</div>{% endif %}{% endwith %}
+          {% if not service.is_active %}<span class="badge badge-paused">Paused</span>{% endif %}
+          <span class="price-pill">&#8377;{{ service.price|floatformat:"0g" }} <small>/mo</small></span>
+        </div>
+        <div class="service-body">
+          <h3>{{ service.title }}</h3>
+          <div class="meta-line"><span>&#128065; {{ service.view_count }} views</span><span>&#9829; {{ service.saves }}</span><span>{{ service.total_requests }} requests{% if service.view_count %} ({{ service.conversion }}%){% endif %}</span></div>
+          <div class="mini-bar" title="Views vs your best listing"><i style="width:{{ service.view_pct }}%"></i></div>
+          <p class="slot-count">{{ service.beds_left }}/{{ service.total_beds }} bed{{ service.total_beds|pluralize }} free &middot; {{ service.available_slot_count }} visit slots open</p>
+          <p class="muted small">{{ service.pending_requests }} awaiting reply &middot; {{ service.confirmed_visits }} confirmed</p>
+          <div class="btn-row"><a href="{% url 'services:detail' service.pk %}" class="btn btn-ghost btn-sm">View</a><a href="{% url 'services:edit' service.pk %}" class="btn btn-outline btn-sm">Edit</a><a href="{% url 'services:manage_slots' service.pk %}" class="btn btn-outline btn-sm">Slots</a></div>
+          <div class="btn-row">
+            <form method="post" action="{% url 'services:toggle_active' service.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">{% if service.is_active %}Pause{% else %}Go live{% endif %}</button></form>
+            <form method="post" action="{% url 'services:delete' service.pk %}" onsubmit="return confirm('Delete this listing permanently?');">{% csrf_token %}<button class="btn btn-ghost btn-sm danger" type="submit">Delete</button></form>
+          </div>
+        </div>
+      </div>
+    {% empty %}<div class="empty-state"><span class="ico">&#127969;</span><h3>List your first room</h3><p class="muted">It takes about 3 minutes.</p><a href="{% url 'services:create' %}" class="btn btn-primary">+ List a room</a></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

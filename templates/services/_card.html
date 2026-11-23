@@ -1,0 +1,39 @@
+
+<article class="service-card">
+  {% if user.is_authenticated and show_favorite %}
+    <form method="post" action="{% url 'services:toggle_favorite' service.pk %}" class="favorite-form">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="favorite-btn {% if service.pk in user_favorite_ids or is_saved %}is-saved{% endif %}" aria-label="Save room" title="Save">{% if service.pk in user_favorite_ids or is_saved %}&#9829;{% else %}&#9825;{% endif %}</button>
+    </form>
+  {% endif %}
+  <form method="post" action="{% url 'services:compare_toggle' service.pk %}" class="compare-form">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button type="submit" class="compare-btn {% if service.pk in compare_ids %}on{% endif %}">{% if service.pk in compare_ids %}&#10003; Comparing{% else %}+ Compare{% endif %}</button>
+  </form>
+  <a href="{% url 'services:detail' service.pk %}" class="service-card-link">
+    <div class="service-thumb">
+      {% with cover=service.cover_url %}{% if cover %}<img src="{{ cover }}" alt="{{ service.title }}" loading="lazy">{% else %}<div class="thumb-fallback">{{ service.title|slice:":1" }}</div>{% endif %}{% endwith %}
+      {% if service.is_full %}<span class="badge badge-paused">Fully booked</span>{% elif service.provider.is_verified %}<span class="badge badge-verified">&#10003; Verified owner</span>{% endif %}
+      {% if service.has_360 %}<span class="pill360">&#127760; 360&deg;</span>{% endif %}
+      <span class="price-pill">&#8377;{{ service.price|floatformat:"0g" }} <small>/mo</small></span>
+    </div>
+    <div class="service-body">
+      <p class="eyebrow">{{ service.category.name|default:"Room" }} &middot; {{ service.city }}</p>
+      <h3>{{ service.title }}</h3>
+      <p class="muted small">&#128205; {{ service.location|default:service.city }}</p>
+      <div class="rating-line">
+        {% if service.review_count %}<span class="stars">&#9733; {{ service.avg_rating|floatformat:1 }}</span><span class="muted">({{ service.review_count }})</span>
+        {% else %}<span class="muted small">New listing</span>{% endif %}
+      </div>
+      <div class="tag-row">
+        <span class="tag">{{ service.get_tenant_preference_display }}</span>
+        {% if service.gender_allowed != "ANY" %}<span class="tag">{{ service.get_gender_allowed_display }}</span>{% endif %}
+        {% if service.is_furnished %}<span class="tag">Furnished</span>{% endif %}
+      </div>
+      <div class="service-footer">
+        <span class="muted small">Deposit &#8377;{{ service.deposit_amount|floatformat:"0g" }}</span>
+        {% if not service.is_full %}<span class="tag tag-success">{{ service.beds_left }} bed{{ service.beds_left|pluralize }} left</span>{% endif %}
+      </div>
+    </div>
+  </a>
+</article>

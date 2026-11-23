@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Payment successful - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card center">
+    <div class="otp-icon" style="background:var(--success-light)">&#9989;</div>
+    <h1>Payment successful</h1>
+    <p>Your booking for <strong>{{ booking.service.title }}</strong> ({{ booking.when_label }}) is confirmed.</p>
+    <table class="receipt-table" style="text-align:left">
+      <tr><th>Amount paid</th><td>&#8377;{{ booking.total_price|floatformat:"-2g" }}</td></tr>
+      {% if booking.payment.method %}<tr><th>Method</th><td>{{ booking.payment.method }}</td></tr>{% endif %}
+      <tr><th>Payment ID</th><td><code>{{ booking.payment.razorpay_payment_id }}</code></td></tr>
+      <tr><th>Reference</th><td>RS{{ booking.id|stringformat:"05d" }}</td></tr>
+    </table>
+    <a href="{% url 'chatapp:room' booking.id %}" class="btn btn-primary">Message the owner</a>
+    <a href="{% url 'bookings:receipt' booking.id %}" class="btn btn-outline">View receipt</a>
+    <a href="{% url 'bookings:calendar_ics' booking.id %}" class="btn btn-ghost">Add to calendar</a>
+    <p><a href="{% url 'bookings:my_bookings' %}">Back to my bookings</a></p>
+  </div>
+</section>
+{% endblock %}

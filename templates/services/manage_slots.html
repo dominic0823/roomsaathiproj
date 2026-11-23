@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Manage slots - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <h1>{{ service.title }} &mdash; visit slots</h1>
+  <div class="two-col">
+    <div>
+      <div class="auth-card">
+        <h2>Add many at once</h2>
+        <p class="muted">e.g. 10:00&ndash;13:00 every day next week, 30-minute visits.</p>
+        <form method="post">
+          {% csrf_token %}<input type="hidden" name="bulk" value="1">
+          {% if bulk_form.non_field_errors %}<p class="field-error">{{ bulk_form.non_field_errors.0 }}</p>{% endif %}
+          {% for field in bulk_form %}
+            <div class="form-group"><label>{{ field.label }}</label>{{ field }}
+              {% if field.errors %}<p class="field-error">{{ field.errors.0 }}</p>{% endif %}</div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary btn-block">Generate slots</button>
+        </form>
+      </div>
+      <div class="auth-card" style="margin-top:20px">
+        <h2>Add a single slot</h2>
+        <form method="post">
+          {% csrf_token %}
+          {% if form.non_field_errors %}<p class="field-error">{{ form.non_field_errors.0 }}</p>{% endif %}
+          {% for field in form %}
+            <div class="form-group"><label>{{ field.label }}</label>{{ field }}
+              {% if field.errors %}<p class="field-error">{{ field.errors.0 }}</p>{% endif %}</div>
+          {% endfor %}
+          <button type="submit" class="btn btn-outline btn-block">Add slot</button>
+        </form>
+      </div>
+    </div>
+    <div>
+      <h2>Existing slots</h2>
+      {% for slot in slots %}
+        <div class="slot-row {% if slot.is_booked %}taken{% else %}live{% endif %}">
+          <span>{{ slot.label }}</span>
+          <span class="slot-actions">
+            <span class="slot-tag {% if slot.is_booked %}taken-tag{% endif %}">{% if slot.is_booked %}Booked{% else %}Open{% endif %}</span>
+            {% if not slot.is_booked %}
+              <form method="post" action="{% url 'services:delete_slot' service.pk slot.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm danger" type="submit" aria-label="Remove slot">&times;</button></form>
+            {% endif %}
+          </span>
+        </div>
+      {% empty %}
+        <p class="muted">No slots added yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

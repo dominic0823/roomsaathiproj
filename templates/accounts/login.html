@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Log in - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section"><div class="auth-split">
+  {% include "accounts/_aside.html" %}
+  <div class="auth-form"><div class="auth-card">
+    <h1>Welcome back</h1><p class="muted">Log in to book rooms or manage listings.</p>
+    <form method="post">{% csrf_token %}
+      {% if form.non_field_errors %}<p class="field-error">{{ form.non_field_errors.0 }}</p>{% endif %}
+      {% for field in form %}<div class="form-group"><label>{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors.0 }}</p>{% endif %}</div>{% endfor %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Log in</button>
+    </form>
+    <p class="auth-switch"><a href="{% url 'accounts:login_otp' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">&#128241; Log in with a mobile OTP instead</a></p>
+    <p class="auth-switch"><a href="{% url 'accounts:password_reset' %}">Forgot password?</a> &middot; <a href="{% url 'accounts:register' %}">Create account</a></p>
+  </div></div>
+</div></section>
+{% endblock %}

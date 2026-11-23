@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Verify your {{ channel }} - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="otp-card">
+    <ol class="otp-steps">
+      <li class="done"><span>&#10003;</span> Account</li>
+      <li class="{% if has_active %}done{% else %}on{% endif %}"><span>{% if has_active %}&#10003;{% else %}2{% endif %}</span> Get code</li>
+      <li class="{% if has_active %}on{% endif %}"><span>3</span> Enter code</li>
+    </ol>
+
+    {% if not has_active %}
+      <div class="otp-icon">{% if channel == "phone" %}&#128241;{% else %}&#9993;&#65039;{% endif %}</div>
+      <h1>Let's verify your {% if channel == "phone" %}mobile number{% else %}email{% endif %}</h1>
+      <p class="muted">It takes under a minute and keeps everyone on RoomSaathi safe. We'll send a 6-digit code to <b>{{ masked }}</b>.</p>
+      <form method="post" class="channel-list">{% csrf_token %}
+        <input type="hidden" name="action" value="send"><input type="hidden" name="next" value="{{ next }}">
+        {% if channel == "phone" %}
+          <p class="small muted" style="margin-bottom:6px">How would you like to receive it?</p>
+          {% if whatsapp_ok %}<button class="channel-card wa" name="via" value="whatsapp" type="submit"><span class="ci">&#128172;</span><span><b>Send on WhatsApp</b><small>Fastest &middot; arrives in seconds</small></span><i>&rsaquo;</i></button>{% endif %}
+          {% if sms_ok %}<button class="channel-card" name="via" value="sms" type="submit"><span class="ci">&#9993;&#65039;</span><span><b>Send as text message (SMS)</b><small>Works on any phone</small></span><i>&rsaquo;</i></button>{% endif %}
+          {% if not whatsapp_ok and not sms_ok %}<p class="alert alert-warning">Phone verification is being set up. Please try email instead or contact us.</p>{% endif %}
+        {% else %}
+          {% if email_ok %}<button class="channel-card" name="via" value="email" type="submit"><span class="ci">&#9993;&#65039;</span><span><b>Email me the code</b><small>Check spam if you can't see it</small></span><i>&rsaquo;</i></button>
+          {% else %}<p class="alert alert-warning">Email isn't set up on this server yet.</p>{% endif %}
+        {% endif %}
+      </form>
+    {% else %}
+      <div class="otp-icon">{% if sent_via_code == "WHATSAPP" %}&#128172;{% elif sent_via_code == "EMAIL" %}&#9993;&#65039;{% else %}&#128274;{% endif %}</div>
+      <h1>Enter your code</h1>
+      <p class="muted">We sent a 6-digit code to <b>{{ masked }}</b> by {{ sent_via }}.</p>
+      <form method="post" id="otp-form">{% csrf_token %}
+        <input type="hidden" name="action" value="verify"><input type="hidden" name="next" value="{{ next }}"><input type="hidden" name="code" id="otp-code">
+        {% if demo_otp %}<div class="demo-otp"><span>&#129514; Demo OTP</span><b>{{ demo_otp }}</b><button type="button" class="btn btn-outline btn-sm" id="demo-fill" data-code="{{ demo_otp }}">Fill it for me</button></div>{% endif %}
+        <div class="otp-boxes" id="otp-boxes" aria-label="6-digit code"></div>
+        <button class="btn btn-primary btn-block btn-lg" id="otp-submit" type="submit" disabled>Verify</button>
+      </form>
+      <p class="otp-timer" id="otp-expiry" data-seconds="{{ expires_in }}">Code expires in <b>--:--</b></p>
+      <div class="otp-resend" id="otp-resend" data-wait="{{ wait }}">
+        <span class="muted small" id="resend-text">Didn't get it?</span>
+        <form method="post" class="inline-form" style="margin:0">{% csrf_token %}<input type="hidden" name="action" value="send"><input type="hidden" name="next" value="{{ next }}">
+          {% if channel == "phone" %}
+            {% if whatsapp_ok %}<button class="btn btn-outline btn-sm resend-btn" name="via" value="whatsapp" type="submit" disabled>&#128172; Resend on WhatsApp</button>{% endif %}
+            {% if sms_ok %}<button class="btn btn-outline btn-sm resend-btn" name="via" value="sms" type="submit" disabled>&#9993;&#65039; Resend by SMS</button>{% endif %}
+          {% else %}<button class="btn btn-outline btn-sm resend-btn" name="via" value="email" type="submit" disabled>Resend email</button>{% endif %}
+        </form>
+      </div>
+    {% endif %}
+    <p class="auth-switch"><a href="{% url 'accounts:profile' %}">Wrong {% if channel == "phone" %}number{% else %}email{% endif %}? Edit it</a>
+      {% if channel == "phone" %}&middot; <a href="{% url 'accounts:verify' 'email' %}">Verify by email instead</a>{% endif %}</p>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/otp.js' %}"></script>{% endblock %}

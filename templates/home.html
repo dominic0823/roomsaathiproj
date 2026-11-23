@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="container hero-inner">
+    <p class="eyebrow" style="color:#7ff0d8">Rooms &middot; PGs &middot; Flats</p>
+    <h1>Find your next room, <em>without the broker.</em></h1>
+    <p class="lead">Verified owners, real photos, instant visit booking. Built for students, families and defence personnel.</p>
+    <div class="hero-trust"><span>Zero brokerage</span><span>OTP-verified accounts</span><span>Refundable advance</span></div>
+  </div>
+</section>
+
+<div class="container">
+  <form class="search-card" method="get" action="{% url 'services:list' %}">
+    <div class="pill-tabs">
+      <label><input type="radio" name="pref" value="" checked><span>Anyone</span></label>
+      {% for value, label in preferences %}{% if value != "ANYONE" %}<label><input type="radio" name="pref" value="{{ value }}"><span>{{ label }}</span></label>{% endif %}{% endfor %}
+    </div>
+    <div class="search-grid">
+      <div><label>City</label><select name="city"><option value="">All cities</option>{% for c in cities %}<option>{{ c }}</option>{% endfor %}</select></div>
+      <div><label>Area / landmark</label><input type="text" name="q" placeholder="e.g. Kamla Nagar, near metro"></div>
+      <div><label>Max budget</label>
+        <select name="max_price"><option value="">Any budget</option><option value="5000">Up to &#8377;5,000</option><option value="8000">Up to &#8377;8,000</option><option value="12000">Up to &#8377;12,000</option><option value="20000">Up to &#8377;20,000</option></select></div>
+      <button class="btn btn-primary btn-lg" type="submit">Search rooms</button>
+    </div>
+  </form>
+
+  <div class="stats-strip">
+    <div class="stat"><b>{{ stats.rooms }}</b><span>Rooms listed</span></div>
+    <div class="stat"><b>{{ stats.owners }}</b><span>Verified-phone owners</span></div>
+    <div class="stat"><b>{{ stats.cities }}</b><span>Cities</span></div>
+    <div class="stat"><b>&#8377;0</b><span>Brokerage</span></div>
+  </div>
+</div>
+
+<section class="container section">
+  <div class="section-head"><div><h2>Who is it for?</h2><p>Pick the kind of stay you need.</p></div></div>
+  <div class="tile-grid">
+    <a class="tile" href="{% url 'services:list' %}?pref=STUDENT"><span class="ico">&#127891;</span><div><b>Students</b><small>PGs near campus</small></div></a>
+    <a class="tile" href="{% url 'services:list' %}?pref=FAMILY"><span class="ico">&#128106;</span><div><b>Families</b><small>Rooms with kitchen</small></div></a>
+    <a class="tile" href="{% url 'services:list' %}?pref=DEFENCE"><span class="ico">&#127894;&#65039;</span><div><b>Defence personnel</b><small>Near cantonments</small></div></a>
+    <a class="tile" href="{% url 'services:list' %}?pref=WORKING_PROFESSIONAL"><span class="ico">&#128188;</span><div><b>Professionals</b><small>Studios &amp; 1RK</small></div></a>
+    <a class="tile" href="{% url 'services:list' %}?gender=FEMALE"><span class="ico">&#128105;</span><div><b>Girls only</b><small>Safe &amp; supervised</small></div></a>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="section-head"><div><h2>Latest rooms</h2><p>Freshly listed by verified-phone owners.</p></div><a class="btn btn-outline btn-sm" href="{% url 'services:list' %}">View all &rarr;</a></div>
+  <div class="service-grid">
+    {% for service in featured %}{% include "services/_card.html" with show_favorite=True %}
+    {% empty %}<div class="empty-state"><span class="ico">&#127968;</span><p class="muted">No rooms yet. Owners can list one in a minute.</p></div>{% endfor %}
+  </div>
+</section>
+
+{% if localities %}
+<section class="container section">
+  <div class="section-head"><div><h2>Popular localities</h2></div></div>
+  <div class="chip-row">
+    {% for l in localities %}<a class="chip-link" href="{% url 'services:list' %}?locality={{ l.location|urlencode }}&city={{ l.city|urlencode }}">&#128205; {{ l.location }} <small>{{ l.city }} &middot; {{ l.n }}</small></a>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if recent %}
+<section class="container section">
+  <div class="section-head"><div><h2>Recently viewed</h2><p>Pick up where you left off.</p></div></div>
+  <div class="service-grid">{% for service in recent %}{% include "services/_card.html" with show_favorite=True %}{% endfor %}</div>
+</section>
+{% endif %}
+
+<section class="container section">
+  <div class="section-head"><div><h2>How RoomSaathi works</h2><p>From search to keys in four steps.</p></div></div>
+  <div class="steps">
+    <div class="step"><h3>Search &amp; filter</h3><p>Filter by budget, locality, audience, amenities and free beds. Compare up to 3 rooms side by side.</p></div>
+    <div class="step"><h3>Visit the room</h3><p>Book a visit slot for a small refundable token and see it in person.</p></div>
+    <div class="step"><h3>Request to book</h3><p>Pick your move-in date. The owner approves within 48 hours.</p></div>
+    <div class="step"><h3>Pay &amp; move in</h3><p>Pay the advance online to lock your room. Deposit and rent go straight to the owner.</p></div>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="section-head"><div><h2>Why people trust RoomSaathi</h2></div></div>
+  <div class="feature-grid">
+    <div class="feature"><span class="ico">&#128241;</span><h3>OTP-verified everyone</h3><p>Every tenant and owner confirms their mobile number with a one-time code.</p></div>
+    <div class="feature"><span class="ico">&#9989;</span><h3>Verified owner badge</h3><p>Our team speaks to owners and checks they own or manage the property.</p></div>
+    <div class="feature"><span class="ico">&#128176;</span><h3>Refundable advance</h3><p>Cancel 3+ days before move-in for a full refund. Owner cancels? Always refunded.</p></div>
+    <div class="feature"><span class="ico">&#128172;</span><h3>Chat &amp; WhatsApp</h3><p>Message the owner in-app or on WhatsApp before you decide.</p></div>
+    <div class="feature"><span class="ico">&#128276;</span><h3>Search alerts</h3><p>Save your filters and get notified the moment a matching room is listed.</p></div>
+    <div class="feature"><span class="ico">&#11088;</span><h3>Reviews from real stays</h3><p>Only tenants who actually visited or moved in can leave a review.</p></div>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="section-head"><div><h2>What tenants say</h2></div></div>
+  <div class="quote-grid">
+    <div class="quote-card"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span><p>Found a PG near campus in one evening, visited the next day and moved in that weekend. No broker, no drama.</p><div class="person"><span class="user-avatar">R</span><div><b>Riya S.</b><br><span class="muted">Student, Delhi</span></div></div></div>
+    <div class="quote-card"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span><p>Posted near the cantonment on short notice. The flexible-stay filter and verified owners made it painless for my family.</p><div class="person"><span class="user-avatar">A</span><div><b>Maj. Arjun K.</b><br><span class="muted">Army family</span></div></div></div>
+    <div class="quote-card"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9734;</span><p>As an owner, I get genuine requests and the advance reduces no-shows. Approving takes one tap.</p><div class="person"><span class="user-avatar">K</span><div><b>Kavita G.</b><br><span class="muted">PG owner</span></div></div></div>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="cta-band">
+    <div><h2>Have a room to rent out?</h2><p>List it free, get OTP-verified tenants and manage requests from one dashboard.</p></div>
+    <a class="btn btn-accent btn-lg" href="{% url 'accounts:register' %}?role=PROVIDER">List your room</a>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="section-head"><div><h2>Frequently asked questions</h2></div><a href="{% url 'pages:faq' %}" class="btn btn-outline btn-sm">All FAQs</a></div>
+  <details class="faq"><summary>Is RoomSaathi really broker-free?</summary><p>Yes. You deal directly with the owner and we never charge brokerage on rent.</p></details>
+  <details class="faq"><summary>What is a visit slot?</summary><p>A time window when the owner can show you the room. Book one with a small refundable token to see the room before you decide.</p></details>
+  <details class="faq"><summary>When do I get my advance back?</summary><p>Cancel at least 3 days before move-in for a full refund; if the owner cancels you are always refunded in full.</p></details>
+</section>
+{% endblock %}

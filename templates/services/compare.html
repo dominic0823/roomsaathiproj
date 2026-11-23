@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load room_extras %}
+{% block title %}Compare rooms - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><h1>Compare rooms</h1><div class="header-actions"><a class="btn btn-outline" href="{% url 'services:list' %}">+ Add more rooms</a>
+    {% if rooms %}<form method="post" action="{% url 'services:compare_clear' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'services:list' %}"><button class="btn btn-ghost" type="submit">Clear</button></form>{% endif %}</div></div>
+  {% if rooms|length < 2 %}
+    <div class="empty-state"><span class="ico">&#9878;&#65039;</span><h3>Pick at least 2 rooms to compare</h3><p class="muted">Tap "+ Compare" on any room card (up to 3).</p><a class="btn btn-primary" href="{% url 'services:list' %}">Browse rooms</a></div>
+  {% else %}
+  <div class="table-wrap"><table class="compare-table">
+    <tr><th></th>{% for r in rooms %}<td><a href="{% url 'services:detail' r.pk %}"><b>{{ r.title }}</b></a><br><span class="muted small">{{ r.location|default:r.city }}, {{ r.city }}</span>
+      <form method="post" action="{% url 'services:compare_toggle' r.pk %}" style="margin-top:6px">{% csrf_token %}<input type="hidden" name="next" value="{% url 'services:compare' %}"><button class="btn btn-ghost btn-sm" type="submit">Remove</button></form></td>{% endfor %}</tr>
+    <tr><th>Photo</th>{% for r in rooms %}<td>{% with c=r.cover_url %}{% if c %}<img src="{{ c }}" alt="" style="width:100%;max-width:240px;border-radius:12px">{% endif %}{% endwith %}</td>{% endfor %}</tr>
+    <tr><th>Rent / month</th>{% for r in rooms %}<td class="{% if r.price == cheapest %}best{% endif %}">&#8377;{{ r.price|floatformat:"0g" }}{% if r.price == cheapest %} &middot; lowest{% endif %}</td>{% endfor %}</tr>
+    <tr><th>Deposit</th>{% for r in rooms %}<td>&#8377;{{ r.deposit_amount|floatformat:"0g" }}</td>{% endfor %}</tr>
+    <tr><th>Advance</th>{% for r in rooms %}<td>{% if r.advance_amount > 0 %}&#8377;{{ r.advance_amount|floatformat:"0g" }}{% else %}Free{% endif %}</td>{% endfor %}</tr>
+    <tr><th>Rating</th>{% for r in rooms %}<td>{% if r.review_count %}&#9733; {{ r.avg_rating|floatformat:1 }} ({{ r.review_count }}){% else %}<span class="muted">New</span>{% endif %}</td>{% endfor %}</tr>
+    <tr><th>Beds free</th>{% for r in rooms %}<td>{% if r.is_full %}<span class="danger">Fully booked</span>{% else %}{{ r.beds_left }} of {{ r.total_beds }}{% endif %}</td>{% endfor %}</tr>
+    <tr><th>Suited for</th>{% for r in rooms %}<td>{{ r.get_tenant_preference_display }}<br><span class="muted small">{{ r.get_gender_allowed_display }}</span></td>{% endfor %}</tr>
+    <tr><th>Furnished</th>{% for r in rooms %}<td>{% if r.is_furnished %}<span class="yes">Yes</span>{% else %}<span class="no">No</span>{% endif %}</td>{% endfor %}</tr>
+    <tr><th>Min. stay</th>{% for r in rooms %}<td>{{ r.min_stay_months }} month{{ r.min_stay_months|pluralize }}</td>{% endfor %}</tr>
+    <tr><th>Owner</th>{% for r in rooms %}<td>{{ r.provider.username }}{% if r.provider.is_verified %} <span class="yes">&#10003; verified</span>{% endif %}</td>{% endfor %}</tr>
+    {% for name in all_amenities %}<tr><th>{{ name }}</th>{% for r in rooms %}<td>{% if name in amenity_sets|get_item:r.pk %}<span class="yes">&#10003;</span>{% else %}<span class="no">&mdash;</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+    <tr><th></th>{% for r in rooms %}<td><a class="btn btn-primary btn-sm" href="{% url 'services:detail' r.pk %}">View &amp; book</a></td>{% endfor %}</tr>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}

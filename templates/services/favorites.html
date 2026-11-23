@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Saved rooms - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><h1>Saved rooms</h1></div>
+  <div class="service-grid">
+    {% for favorite in favorites %}
+      {% include "services/_card.html" with service=favorite.service show_favorite=True is_saved=True %}
+    {% empty %}
+      <p class="muted">You haven't saved anything yet. Browse rooms and tap the heart icon to save them here.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

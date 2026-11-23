@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Help & FAQ - RoomSaathi{% endblock %}
+{% block content %}<section class="container section"><div class="prose">
+<p class="eyebrow">Help centre</p><h1>Frequently asked questions</h1>
+{% for q, a in faqs %}<details class="faq"><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}
+<p style="margin-top:24px">Still stuck? <a href="{% url 'pages:contact' %}">Contact us</a>.</p></div></section>{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}About - RoomSaathi{% endblock %}
+{% block content %}<section class="container section"><div class="prose">
+<p class="eyebrow">About us</p><h1>Rooms should be easy to find, and honest to rent.</h1>
+<p>RoomSaathi connects tenants with room owners directly. Students moving to a new city, families on transfer and defence personnel on posting often lose weeks - and a month's rent - to brokers. We built a simple, transparent alternative.</p>
+<h2>What we believe</h2>
+<ul><li><b>No brokerage.</b> Owners and tenants deal directly.</li><li><b>Trust by default.</b> OTP-verified phones, verified-owner badges and reviews only from real stays.</li><li><b>Fair money rules.</b> Small refundable tokens and advances, clear cancellation policy, payments via Razorpay.</li></ul>
+<a class="btn btn-primary" href="{% url 'services:list' %}">Find a room</a> <a class="btn btn-outline" href="{% url 'accounts:register' %}?role=PROVIDER">List your room</a>
+</div></section>{% endblock %}

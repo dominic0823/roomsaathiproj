@@ -1,0 +1,102 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}RoomSaathi - Find rooms, PGs & flats without a broker{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Find verified rooms, PGs and flats directly from owners. Book a visit or reserve your room online. No brokerage.{% endblock %}">
+  <meta property="og:site_name" content="RoomSaathi">
+  <meta property="og:title" content="{% block og_title %}RoomSaathi - rooms without brokers{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Verified rooms and PGs, direct from owners.{% endblock %}">
+  {% block og_image %}{% endblock %}
+  <meta name="theme-color" content="#0a7a6b">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f9d8a'/><path d='M50 22 18 48h9v28h18V58h10v18h18V48h9z' fill='white'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+{% if demo_mode %}<div class="demo-bar">&#129514; Demo mode &mdash; OTP codes appear on screen and payments are simulated. No real messages or money.</div>{% endif %}
+{% if phone_required and user.is_authenticated and not user.phone_verified and '/accounts/verify/' not in request.path %}
+<div class="verify-banner"><div class="container">&#128241; Verify your mobile number to book visits, rent rooms or list rooms.
+  <a href="{% url 'accounts:verify' 'phone' %}?next={{ request.get_full_path|urlencode }}">Verify now &rarr;</a></div></div>
+{% endif %}
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="{% url 'home' %}" class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg></span><span>Room<em>Saathi</em></span></a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <nav class="main-nav">
+      <a href="{% url 'services:list' %}">Find a room</a>
+      {% if user.is_authenticated and user.is_provider %}
+        <a href="{% url 'services:provider_dashboard' %}">My listings</a>
+        <a href="{% url 'bookings:provider_bookings' %}">Requests</a>
+      {% elif not user.is_authenticated %}
+        <a href="{% url 'accounts:register' %}?role=PROVIDER">List your room</a>
+      {% endif %}
+      <a href="{% url 'pages:faq' %}">Help</a>
+      {% if user.is_authenticated %}
+        {% if user.is_customer %}<a href="{% url 'bookings:my_bookings' %}">My bookings</a>{% endif %}
+        <a href="{% url 'chatapp:inbox' %}">Messages</a>
+        <a href="{% url 'accounts:notifications' %}" class="nav-bell" aria-label="Notifications">&#128276;{% if unread_notifications %}<span class="bell-count">{{ unread_notifications }}</span>{% endif %}</a>
+        <details class="user-menu">
+          <summary class="menu-trigger"><span class="user-avatar">{{ user.username|slice:":1"|upper }}</span> {{ user.username }} &#9662;</summary>
+          <div class="menu-panel">
+            <a href="{% url 'accounts:profile' %}">My profile</a>
+            <a href="{% url 'payments:history' %}">{% if user.is_provider %}Payments received{% else %}My payments{% endif %}</a>
+            {% if user.is_customer %}<a href="{% url 'services:my_favorites' %}">Saved rooms</a><a href="{% url 'services:saved_searches' %}">Search alerts</a>
+            {% else %}<a href="{% url 'accounts:verification' %}">{% if user.is_verified %}&#10003; Verified owner{% else %}Get verified{% endif %}</a><a href="{% url 'services:owner_profile' user.username %}">My public profile</a>{% endif %}
+            <hr>
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+          </div>
+        </details>
+      {% else %}
+        <a href="{% url 'accounts:login' %}">Log in</a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-sm">Sign up</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+{% if messages %}<div class="toast-wrap">{% for message in messages %}<div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+{% if compare_ids %}
+<div class="compare-tray">
+  <span><b>{{ compare_ids|length }}</b> room{{ compare_ids|length|pluralize }} selected to compare</span>
+  <a class="btn btn-primary btn-sm" href="{% url 'services:compare' %}">Compare now</a>
+  <form method="post" action="{% url 'services:compare_clear' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-ghost btn-sm" type="submit">Clear</button></form>
+</div>
+{% endif %}
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="{% url 'home' %}" class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg></span><span>Room<em>Saathi</em></span></a>
+        <p>Rooms, PGs and flats directly from owners - for students, families and defence personnel. No brokerage, ever.</p>
+      </div>
+      <div><h4>Explore</h4>
+        <a href="{% url 'services:list' %}">All rooms</a>
+        <a href="{% url 'services:list' %}?pref=STUDENT">For students</a>
+        <a href="{% url 'services:list' %}?pref=DEFENCE">For defence families</a>
+        <a href="{% url 'services:list' %}?pref=WORKING_PROFESSIONAL">For professionals</a></div>
+      <div><h4>Owners</h4>
+        <a href="{% url 'accounts:register' %}?role=PROVIDER">List your room</a>
+        <a href="{% url 'services:provider_dashboard' %}">Owner dashboard</a>
+        <a href="{% url 'accounts:verification' %}">Get verified</a></div>
+      <div><h4>Company</h4>
+        <a href="{% url 'pages:about' %}">About us</a>
+        <a href="{% url 'pages:faq' %}">Help & FAQ</a>
+        <a href="{% url 'pages:contact' %}">Contact</a>
+        <a href="{% url 'pages:terms' %}">Terms</a>
+        <a href="{% url 'pages:privacy' %}">Privacy</a></div>
+    </div>
+    <div class="footer-bottom"><span>&copy; {% now "Y" %} RoomSaathi. Made in India.</span><span>Payments secured by Razorpay</span></div>
+  </div>
+</footer>
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

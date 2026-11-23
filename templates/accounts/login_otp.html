@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Log in with OTP - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="otp-card">
+    <div class="otp-icon">{% if step == "phone" %}&#128075;{% else %}&#128274;{% endif %}</div>
+    {% if step == "phone" %}
+      <h1>Log in with your mobile</h1>
+      <p class="muted">No password needed. Enter the number you verified on RoomSaathi and we'll send you a code.</p>
+      <form method="post" class="channel-list">{% csrf_token %}<input type="hidden" name="action" value="send"><input type="hidden" name="next" value="{{ next }}">
+        <div class="form-group"><label>Mobile number</label>
+          <div class="phone-field"><span>+91</span><input type="tel" name="phone" placeholder="98765 43210" inputmode="tel" required autofocus></div></div>
+        {% if whatsapp_ok %}<button class="channel-card wa" name="via" value="whatsapp" type="submit"><span class="ci">&#128172;</span><span><b>Get code on WhatsApp</b><small>Fastest &middot; arrives in seconds</small></span><i>&rsaquo;</i></button>{% endif %}
+        {% if sms_ok %}<button class="channel-card" name="via" value="sms" type="submit"><span class="ci">&#9993;&#65039;</span><span><b>Get code by SMS</b><small>Works on any phone</small></span><i>&rsaquo;</i></button>{% endif %}
+      </form>
+    {% else %}
+      <h1>Enter your code</h1>
+      <p class="muted">If <b>{{ masked }}</b> is registered, a 6-digit code is on its way. Check WhatsApp or your messages.</p>
+      <form method="post" id="otp-form">{% csrf_token %}<input type="hidden" name="action" value="verify"><input type="hidden" name="next" value="{{ next }}"><input type="hidden" name="code" id="otp-code">
+        {% if demo_otp %}<div class="demo-otp"><span>&#129514; Demo OTP</span><b>{{ demo_otp }}</b><button type="button" class="btn btn-outline btn-sm" id="demo-fill" data-code="{{ demo_otp }}">Fill it for me</button></div>{% endif %}
+        <div class="otp-boxes" id="otp-boxes"></div>
+        <button class="btn btn-primary btn-block btn-lg" id="otp-submit" type="submit" disabled>Verify &amp; log in</button></form>
+      <p class="otp-timer" id="otp-expiry" data-seconds="300">Code expires in <b>--:--</b></p>
+      <div class="otp-resend" id="otp-resend" data-wait="{{ wait }}"><span class="muted small" id="resend-text">Didn't get it?</span>
+        <form method="post" class="inline-form" style="margin:0">{% csrf_token %}<input type="hidden" name="action" value="change"><button class="btn btn-outline btn-sm resend-btn" type="submit" disabled>Try again / change number</button></form></div>
+    {% endif %}
+    <p class="auth-switch"><a href="{% url 'accounts:login' %}">&larr; Back to password login</a> &middot; <a href="{% url 'accounts:register' %}">New here? Sign up</a></p>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/otp.js' %}"></script>{% endblock %}

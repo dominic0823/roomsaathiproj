@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Page not found - RoomSaathi{% endblock %}
+{% block content %}<section class="container section"><div class="empty-state"><span class="ico">&#128269;</span><h1>404 &mdash; we couldn't find that page</h1><p class="muted">The room or page may have been removed.</p><a class="btn btn-primary" href="{% url 'home' %}">Go home</a> <a class="btn btn-outline" href="{% url 'services:list' %}">Browse rooms</a></div></section>{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Review {{ booking.service.title }} - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card">
+    <h1>How was it?</h1>
+    <p class="muted">{{ booking.service.title }} &middot; {{ booking.when_label }}</p>
+    <form method="post" class="review-form">
+      {% csrf_token %}
+      <div class="star-input">
+        {% for radio in form.rating %}
+          {{ radio.tag }}
+          <label for="{{ radio.id_for_label }}">&#9733;</label>
+        {% endfor %}
+      </div>
+      {% if form.rating.errors %}<p class="field-error">{{ form.rating.errors.0 }}</p>{% endif %}
+      <div class="form-group">
+        <label>{{ form.comment.label }}</label>
+        {{ form.comment }}
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Submit review</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

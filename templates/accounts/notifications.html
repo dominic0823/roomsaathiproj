@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Notifications - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><h1>Notifications</h1>
+    {% if items %}<form method="post" action="{% url 'accounts:clear_notifications' %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Clear all</button></form>{% endif %}</div>
+  <div class="booking-list">
+    {% for n in items %}
+      <a class="booking-row notif {% if not n.is_read %}unread{% endif %}" href="{{ n.url|default:'#' }}">
+        <span>{{ n.message }}</span><span class="muted small">{{ n.created_at|timesince }} ago</span></a>
+    {% empty %}<p class="muted">You're all caught up.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

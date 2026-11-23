@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ owner.get_full_name|default:owner.username }} - Owner on RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><div class="owner-card" style="width:100%">
+    <span class="user-avatar" style="width:72px;height:72px;font-size:1.8rem">{{ owner.username|slice:":1"|upper }}</span>
+    <div class="grow"><h1 style="margin:0">{{ owner.get_full_name|default:owner.username }}</h1>
+      <div class="tag-row">{% if owner.is_verified %}<span class="tag tag-success">&#10003; Verified owner</span>{% endif %}{% if owner.phone_verified %}<span class="tag tag-success">&#128241; Phone verified</span>{% endif %}<span class="tag">Member since {{ owner.date_joined|date:"M Y" }}</span>
+        {% if reply_hours %}<span class="tag">Replies within ~{{ reply_hours }}h</span>{% endif %}</div>
+      <div class="muted">{{ rooms|length }} active listing{{ rooms|length|pluralize }}{% if review_count %} &middot; <span class="stars">&#9733; {{ avg_rating }}</span> from {{ review_count }} review{{ review_count|pluralize }}{% endif %}</div></div>
+  </div></div>
+  <h2>Listings by {{ owner.username }}</h2>
+  <div class="service-grid">{% for service in rooms %}{% include "services/_card.html" with show_favorite=True %}{% empty %}<div class="empty-state"><p class="muted">No active listings right now.</p></div>{% endfor %}</div>
+</section>
+{% endblock %}

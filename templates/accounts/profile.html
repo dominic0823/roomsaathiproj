@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}My profile - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card">
+    <h1>My profile</h1>
+    <p class="muted">{{ user.get_role_display }}</p>
+    <div class="profile-progress"><div class="pp-head"><b>Profile {{ progress }}% complete</b><span class="muted small">{% if progress == 100 %}You're all set! &#127881;{% else %}A complete profile builds trust{% endif %}</span></div>
+      <div class="mini-bar"><i style="width:{{ progress }}%"></i></div>
+      <ul class="checklist">{% for label, ok in checklist %}<li class="{% if ok %}ok{% endif %}">{% if ok %}&#10003;{% else %}&#9675;{% endif %} {{ label }}</li>{% endfor %}</ul></div>
+    <div class="verify-rows">
+      <div>Mobile {% if user.phone_verified %}<span class="badge inline badge-verified">&#10003; verified</span>{% else %}<a class="btn btn-primary btn-sm" href="{% url 'accounts:verify' 'phone' %}">Verify</a>{% endif %}</div>
+      <div>Email {% if user.email_verified %}<span class="badge inline badge-verified">&#10003; verified</span>{% else %}<a class="btn btn-outline btn-sm" href="{% url 'accounts:verify' 'email' %}">Verify</a>{% endif %}</div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group"><label>{{ field.label }}</label>{{ field }}
+          {% if field.errors %}<p class="field-error">{{ field.errors.0 }}</p>{% endif %}</div>
+      {% endfor %}
+      <p class="muted small">Changing your mobile or email means you'll need to verify it again.</p>
+      <button type="submit" class="btn btn-primary btn-block">Save changes</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

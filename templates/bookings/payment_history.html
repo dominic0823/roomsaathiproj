@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Payments - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><h1>{% if as_owner %}Payments received{% else %}My payments{% endif %}</h1></div>
+  <div class="stat-cards">
+    <div class="stat-card"><div class="k">{% if as_owner %}Total received{% else %}Total paid{% endif %}</div><div class="v">&#8377;{{ paid|floatformat:"0g" }}</div></div>
+    <div class="stat-card"><div class="k">Refunded</div><div class="v">&#8377;{{ refunded|floatformat:"0g" }}</div></div>
+    <div class="stat-card"><div class="k">Transactions</div><div class="v">{{ rows|length }}</div></div>
+  </div>
+  <div class="table-wrap"><table class="compare-table">
+    <tr><th>Date</th><th>Room</th><th>For</th><th>Method</th><th>Amount</th><th>Status</th><th></th></tr>
+    {% for p in rows %}
+      <tr>
+        <td>{{ p.created_at|date:"d M Y, H:i" }}<br><span class="muted small">{{ p.razorpay_payment_id|default:p.razorpay_order_id }}</span></td>
+        <td>{{ p.booking.service.title|truncatechars:34 }}{% if as_owner %}<br><span class="muted small">{{ p.booking.customer.username }}</span>{% endif %}</td>
+        <td>{% if p.booking.is_rental %}Room advance{% else %}Visit token{% endif %}</td>
+        <td>{{ p.method|default:"-" }}</td>
+        <td><b>&#8377;{{ p.amount|floatformat:"-2g" }}</b></td>
+        <td><span class="status-tag {% if p.status == 'PAID' %}status-confirmed{% elif p.status == 'REFUNDED' %}status-pending{% elif p.status == 'FAILED' %}status-cancelled{% endif %}">{{ p.get_status_display }}</span></td>
+        <td>{% if p.status == "PAID" or p.status == "REFUNDED" %}<a class="btn btn-ghost btn-sm" href="{% url 'bookings:receipt' p.booking.id %}">Receipt</a>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="muted">No payments yet.</td></tr>{% endfor %}
+  </table></div>
+</section>
+{% endblock %}

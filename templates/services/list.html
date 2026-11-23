@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Rooms{% if st.city %} in {{ st.city }}{% endif %} - RoomSaathi{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header">
+    <div><h1>{% if st.city %}Rooms in {{ st.city }}{% else %}Browse rooms{% endif %}</h1>
+      <p class="muted" style="margin:0">{{ result_count }} room{{ result_count|pluralize }} found</p></div>
+    <div class="header-actions">
+      <button class="btn btn-outline filter-toggle" id="filter-toggle" type="button">&#9776; Filters{% if active_filters %} ({{ active_filters }}){% endif %}</button>
+      {% if user.is_authenticated and active_filters %}
+        {% if saved_this %}<a class="btn btn-ghost btn-sm" href="{% url 'services:saved_searches' %}">&#128276; Alert on</a>
+        {% else %}<form method="post" action="{% url 'services:save_search' %}">{% csrf_token %}<input type="hidden" name="params" value="{{ querystring }}"><button class="btn btn-outline btn-sm" type="submit" title="Get notified when a new room matches">&#128276; Alert me</button></form>{% endif %}
+      {% elif not user.is_authenticated and active_filters %}<a class="btn btn-ghost btn-sm" href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">&#128276; Log in to get alerts</a>{% endif %}
+    </div>
+  </div>
+
+  <div class="list-layout">
+    <aside class="filters" id="filter-panel">
+      <form method="get" id="filter-form">
+        <h3>Filters {% if active_filters %}<a class="small" href="{% url 'services:list' %}">Clear all</a>{% endif %}</h3>
+        <div class="form-group"><label>City</label>
+          <select name="city"><option value="">All cities</option>{% for c in cities %}<option {% if st.city == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label>Search</label><input type="text" name="q" placeholder="Room, area, keyword..." value="{{ query }}"></div>
+        <div class="form-group"><label>Locality</label><input type="text" name="locality" placeholder="e.g. Kamla Nagar" value="{{ locality }}"></div>
+        <div class="form-group"><label>Monthly budget (&#8377;)</label>
+          <div class="range-row"><input type="number" name="min_price" min="0" step="500" placeholder="Min" value="{{ min_price }}"><span>&ndash;</span><input type="number" name="max_price" min="0" step="500" placeholder="Max" value="{{ max_price }}"></div>
+          <div class="chip-row tight"><button type="button" class="chip" data-max="5000">&lt; 5k</button><button type="button" class="chip" data-max="8000">&lt; 8k</button><button type="button" class="chip" data-max="12000">&lt; 12k</button></div></div>
+        <div class="form-group"><label>Best suited for</label>
+          <select name="pref"><option value="">Anyone</option>{% for value, label in preferences %}{% if value != "ANYONE" %}<option value="{{ value }}" {% if pref == value %}selected{% endif %}>{{ label }}</option>{% endif %}{% endfor %}</select></div>
+        <div class="form-group"><label>Open to</label>
+          <select name="gender"><option value="">Anyone</option><option value="MALE" {% if gender == "MALE" %}selected{% endif %}>Boys / Men</option><option value="FEMALE" {% if gender == "FEMALE" %}selected{% endif %}>Girls / Women</option></select></div>
+        <div class="form-group"><label>Room type</label>
+          <select name="category"><option value="">All room types</option>{% for category in categories %}<option value="{{ category.id }}" {% if category_id == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label>Amenities</label>
+          <div class="amenity-filter">{% for a in amenities %}<label class="check"><input type="checkbox" name="amenity" value="{{ a.id }}" {% if a.id|stringformat:"s" in selected_amenities %}checked{% endif %}> {{ a.icon }} {{ a.name }}</label>{% endfor %}</div></div>
+        <label class="check"><input type="checkbox" name="available" value="1" {% if available_only %}checked{% endif %}> Rooms with free beds only</label>
+        <label class="check"><input type="checkbox" name="furnished" value="1" {% if furnished %}checked{% endif %}> Furnished only</label>
+        <label class="check"><input type="checkbox" name="verified" value="1" {% if verified %}checked{% endif %}> Verified owners only</label>
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <button type="submit" class="btn btn-primary btn-block">Apply filters</button>
+      </form>
+    </aside>
+
+    <div>
+      <div class="toolbar">
+        <div>{% if map_points %}<button type="button" class="btn btn-outline btn-sm" id="toggle-map">&#128506; Show map</button>{% endif %}</div>
+        <form method="get" class="toolbar-sort">
+          {% for k, vals in request.GET.lists %}{% if k != "sort" and k != "page" %}{% for v in vals %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+          <select name="sort" data-autosubmit aria-label="Sort">{% for value, label in sort_labels %}<option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        </form>
+      </div>
+      {% if chips %}<div class="active-chips">{% for label, url in chips %}<a class="active-chip" href="{{ url }}">{{ label }} <b>&times;</b></a>{% endfor %}</div>{% endif %}
+      {% if map_points %}<div id="list-map" class="map-box" hidden></div>{{ map_points|json_script:"map-points" }}{% endif %}
+
+      <div class="service-grid">
+        {% for service in page_obj %}{% include "services/_card.html" with show_favorite=True %}
+        {% empty %}<div class="empty-state"><span class="ico">&#128269;</span><h3>No rooms match these filters</h3><p class="muted">Try widening your budget or removing a filter.</p><a class="btn btn-primary" href="{% url 'services:list' %}">Clear filters</a></div>{% endfor %}
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="Pages">
+        {% if page_obj.has_previous %}<a href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">&larr;</a>{% endif %}
+        {% for n in page_range %}{% if n == page_obj.paginator.ELLIPSIS %}<span class="gap">&hellip;</span>{% elif n == page_obj.number %}<span class="current">{{ n }}</span>{% else %}<a href="?{{ querystring }}&page={{ n }}">{{ n }}</a>{% endif %}{% endfor %}
+        {% if page_obj.has_next %}<a href="?{{ querystring }}&page={{ page_obj.next_page_number }}">&rarr;</a>{% endif %}
+      </nav>{% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+{% if map_points %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="{% static 'js/maps.js' %}"></script>{% endif %}
+{% endblock %}

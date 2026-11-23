@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Checkout - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container auth-section">
+  <div class="auth-card">
+    <h1>Confirm and pay</h1>
+    <p><strong>{{ booking.service.title }}</strong></p>
+    <p class="muted">{% if booking.is_rental %}Room booking{% else %}Visit{% endif %}: {{ booking.when_label }}</p>
+    <p class="price large">&#8377;{{ booking.total_price|floatformat:"-2g" }}</p>
+    {% if booking.is_rental %}
+    <p class="muted small">This advance is adjusted against your first month's rent (&#8377;{{ booking.monthly_rent|floatformat:"-2g" }}). Deposit of &#8377;{{ booking.deposit_amount|floatformat:"-2g" }} is paid to the owner at move-in. Refundable if you cancel 3+ days before move-in. Pay before {{ expires_at|date:"d M, H:i" }}.</p>
+    {% else %}<p class="muted small">This is a visit token, refundable if you cancel before the visit. Your slot is held until {{ expires_at|time:"H:i" }}.</p>{% endif %}
+    <button id="rzp-button" class="btn btn-primary btn-block">Pay with Razorpay</button>
+  </div>
+</section>
+<form id="verify-form" method="post" action="{% url 'payments:verify' booking.id %}" style="display:none">
+  {% csrf_token %}
+  <input type="hidden" name="razorpay_payment_id" id="id_payment_id">
+  <input type="hidden" name="razorpay_order_id" id="id_order_id">
+  <input type="hidden" name="razorpay_signature" id="id_signature">
+</form>
+{{ razorpay_key|json_script:"rzp-key" }}
+{{ payment.razorpay_order_id|json_script:"rzp-order" }}
+{{ amount_paise|json_script:"rzp-amount" }}
+{{ booking.service.title|json_script:"rzp-desc" }}
+{% endblock %}
+{% block extra_js %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.getElementById("rzp-button").onclick = function () {
+  var options = {
+    key: JSON.parse(document.getElementById("rzp-key").textContent),
+    amount: JSON.parse(document.getElementById("rzp-amount").textContent),
+    currency: "INR",
+    name: "RoomSaathi",
+    description: JSON.parse(document.getElementById("rzp-desc").textContent),
+    order_id: JSON.parse(document.getElementById("rzp-order").textContent),
+    handler: function (response) {
+      document.getElementById("id_payment_id").value = response.razorpay_payment_id;
+      document.getElementById("id_order_id").value = response.razorpay_order_id;
+      document.getElementById("id_signature").value = response.razorpay_signature;
+      document.getElementById("verify-form").submit();
+    },
+    theme: { color: "#12938A" },
+  };
+  new Razorpay(options).open();
+};
+</script>
+{% endblock %}

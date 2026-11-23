@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Search alerts - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <div class="page-header"><h1>Search alerts</h1><a class="btn btn-primary" href="{% url 'services:list' %}">Find rooms</a></div>
+  <p class="muted">We'll notify you (bell icon) the moment a new room matching one of these searches is listed.</p>
+  <div class="booking-list">
+    {% for s in searches %}
+      <div class="booking-row"><div><h3>&#128276; {{ s.name }}</h3><p class="muted small">Saved {{ s.created_at|date:"d M Y" }}</p></div>
+        <div class="booking-actions"><a class="btn btn-outline btn-sm" href="{% url 'services:list' %}?{{ s.params }}">View results</a>
+          <form method="post" action="{% url 'services:delete_search' s.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm danger" type="submit">Delete</button></form></div></div>
+    {% empty %}<div class="empty-state"><span class="ico">&#128276;</span><h3>No alerts yet</h3><p class="muted">Apply some filters on the rooms page and tap &ldquo;Alert me&rdquo;.</p></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

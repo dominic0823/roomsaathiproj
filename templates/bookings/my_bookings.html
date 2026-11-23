@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}My bookings - RoomSaathi{% endblock %}
+{% block content %}
+<section class="container">
+  <h1>My bookings</h1>
+  <div class="booking-list">
+    {% for booking in bookings %}
+      <div class="booking-row">
+        <div>
+          <p class="eyebrow">{% if booking.is_rental %}Room booking{% else %}Visit{% endif %}</p>
+          <h3><a href="{% url 'services:detail' booking.service_id %}">{{ booking.service.title }}</a></h3>
+          <p class="muted">{{ booking.when_label }}{% if booking.total_price > 0 %} &middot; &#8377;{{ booking.total_price|floatformat:"-2g" }} {% if booking.is_rental %}advance{% else %}token{% endif %}{% endif %}</p>
+          {% if booking.status == "REQUESTED" %}<p class="muted small">Waiting for the owner. They have until {{ booking.expires_at|date:"d M, H:i" }}.</p>{% endif %}
+          {% if booking.status == "PENDING" %}<p class="muted small">Pay before {{ booking.expires_at|date:"d M, H:i" }} or the hold is released.</p>{% endif %}
+          {% if booking.owner_note and booking.is_rental %}<p class="muted small">Owner's note: {{ booking.owner_note }}</p>{% endif %}
+        </div>
+        <span class="status-tag status-{{ booking.status|lower }}">{{ booking.get_status_display }}</span>
+        <div class="booking-actions">
+          {% if booking.status == "PENDING" %}<a href="{% url 'payments:checkout' booking.id %}" class="btn btn-primary btn-sm">Pay now</a>{% endif %}
+          {% if booking.chat_enabled %}<a href="{% url 'chatapp:room' booking.id %}" class="btn btn-outline btn-sm">Chat</a>{% endif %}
+          {% if booking.status == "CONFIRMED" %}
+            <a href="{% url 'bookings:receipt' booking.id %}" class="btn btn-ghost btn-sm">Receipt</a>
+            {% if booking.service.whatsapp_link %}<a href="{{ booking.service.whatsapp_link }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">WhatsApp</a>{% endif %}
+            {% if booking.review %}<span class="review-done">&#9733; Reviewed</span>
+            {% elif booking.can_review %}<a href="{% url 'bookings:leave_review' booking.id %}" class="btn btn-outline btn-sm">Leave a review</a>{% endif %}
+          {% endif %}
+          {% if booking.status != "CANCELLED" and booking.status != "DECLINED" %}
+            <form method="post" action="{% url 'bookings:cancel_booking' booking.id %}" onsubmit="return confirm('Cancel this booking?{% if booking.status == 'CONFIRMED' and booking.total_price > 0 %}{% if booking.refund_eligible %} Your payment will be refunded.{% else %} It is too close to move-in, so the advance is NOT refundable.{% endif %}{% endif %}');">
+              {% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Cancel</button></form>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <p class="muted">You haven't booked anything yet. <a href="{% url 'services:list' %}">Browse rooms &rarr;</a></p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

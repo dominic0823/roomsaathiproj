@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ service.title }} - {{ service.location|default:service.city }} | RoomSaathi{% endblock %}
+{% block meta_description %}{{ service.title }} in {{ service.location|default:service.city }}, {{ service.city }} - ₹{{ service.price|floatformat:"0g" }}/month. {{ service.description|truncatechars:120 }}{% endblock %}
+{% block og_title %}{{ service.title }} - ₹{{ service.price|floatformat:"0g" }}/month{% endblock %}
+{% block og_description %}{{ service.location|default:service.city }}, {{ service.city }} · {{ service.get_tenant_preference_display }}{% endblock %}
+{% block og_image %}{% if og_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image }}">{% endif %}{% endblock %}
+{% block extra_head %}{% if service.has_coordinates %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endif %}{% if panoramas %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">{% endif %}{% endblock %}
+{% block content %}
+<div class="container">
+  <nav class="breadcrumbs"><a href="{% url 'home' %}">Home</a> / <a href="{% url 'services:list' %}?city={{ service.city|urlencode }}">{{ service.city }}</a> / {{ service.title|truncatechars:50 }}</nav>
+  {% if not service.is_active %}<div class="alert alert-warning">This listing is paused &mdash; only you can see it.</div>{% endif %}
+
+  
+  {% with n=images|length %}
+  <div class="gallery-grid {% if n == 1 %}one{% elif n == 2 %}two{% elif n == 3 %}three{% elif n == 4 %}four{% endif %}">
+    {% for img in images|slice:":5" %}
+      <div class="g" data-lightbox="{{ img.url }}"><img src="{{ img.url }}" alt="{{ service.title }} photo {{ forloop.counter }}" {% if not forloop.first %}loading="lazy"{% endif %}></div>
+    {% empty %}
+      {% if service.image %}<div class="g" data-lightbox="{{ service.image.url }}"><img src="{{ service.image.url }}" alt="{{ service.title }}"></div>
+      {% else %}<div class="g"><div class="thumb-fallback large">{{ service.title|slice:":1" }}</div></div>{% endif %}
+    {% endfor %}
+    {% if n > 1 %}<button type="button" class="gallery-count" id="gallery-all">&#128247; View all {{ n }} photos</button>{% endif %}
+  </div>
+  {% endwith %}
+  <div class="lightbox" id="lightbox"><button class="lb-close" aria-label="Close">&times;</button><button class="lb-prev" aria-label="Previous">&#8249;</button><img alt=""><button class="lb-next" aria-label="Next">&#8250;</button><span class="lb-count"></span></div>
+
+  <div class="detail-layout">
+    <div class="detail-main">
+      <div class="block">
+        <div class="detail-title">
+          <div>
+            <p class="eyebrow">{{ service.category.name|default:"Room" }} &middot; {{ service.city }}</p>
+            <h1>{{ service.title }}</h1>
+            <p class="muted" style="margin-bottom:6px">&#128205; {{ service.location|default:service.city }}
+              {% if service.provider.is_verified %}<span class="badge inline badge-verified">&#10003; Verified owner</span>{% endif %}</p>
+            <div class="rating-line">
+              {% if service.rating_summary.count %}<span class="stars">&#9733; {{ service.rating_summary.avg }}</span><span class="muted">&middot; {{ service.rating_summary.count }} review{{ service.rating_summary.count|pluralize }}</span>
+              {% else %}<span class="muted">New listing &middot; no reviews yet</span>{% endif %}
+              <span class="muted">&middot; {{ service.view_count }} view{{ service.view_count|pluralize }}</span>
+            </div>
+          </div>
+          <div class="title-actions">
+            {% if panoramas %}<a class="btn btn-primary btn-sm" href="#tour">&#127760; 360&deg; tour</a>{% endif %}
+            {% if user.is_authenticated %}
+              <form method="post" action="{% url 'services:toggle_favorite' service.pk %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">{% if is_favorited %}&#9829; Saved{% else %}&#9825; Save{% endif %}</button></form>
+            {% endif %}
+            <form method="post" action="{% url 'services:compare_toggle' service.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-outline btn-sm" type="submit">{% if service.pk in compare_ids %}&#10003; Comparing{% else %}+ Compare{% endif %}</button></form>
+            <button type="button" class="btn btn-outline btn-sm" id="share-btn" data-title="{{ service.title }}">&#8599; Share</button>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag">{{ service.get_tenant_preference_display }}</span><span class="tag">{{ service.get_gender_allowed_display }}</span>
+          {% if service.is_furnished %}<span class="tag tag-success">Furnished</span>{% else %}<span class="tag">Unfurnished</span>{% endif %}
+        </div>
+      </div>
+
+      {% if panoramas %}
+      <div class="block" id="tour">
+        <div class="pano-head"><h2>&#127760; 360&deg; virtual tour</h2><span class="muted small">Drag to look around &middot; scroll or pinch to zoom</span></div>
+        {% if panoramas|length > 1 %}<div class="chip-row" style="margin-bottom:10px">{% for p in panoramas %}<button type="button" class="chip pano-tab" data-src="{{ p.url }}">View {{ forloop.counter }}</button>{% endfor %}</div>{% endif %}
+        <div id="pano-viewer" class="pano-viewer" data-src="{{ panoramas.0.url }}"></div>
+      </div>
+      {% endif %}
+
+      <div class="block">
+        <h2>Overview</h2>
+        <div class="facts-grid">
+          <div class="fact"><div class="k">Monthly rent</div><div class="v">&#8377;{{ service.price|floatformat:"0g" }}</div></div>
+          <div class="fact"><div class="k">Deposit</div><div class="v">&#8377;{{ service.deposit_amount|floatformat:"0g" }}</div></div>
+          <div class="fact"><div class="k">Min. stay</div><div class="v">{{ service.min_stay_months }} month{{ service.min_stay_months|pluralize }}</div></div>
+          <div class="fact"><div class="k">Beds</div><div class="v">{{ service.beds_left }} / {{ service.total_beds }} free</div></div>
+        </div>
+        {% if price_insight %}
+          <div class="insight {% if price_insight.diff <= 0 %}good{% endif %}"><span class="ico">{% if price_insight.diff <= 0 %}&#128176;{% else %}&#128200;{% endif %}</span>
+            <span>{% if price_insight.diff < 0 %}<b>{{ price_insight.abs }}% below</b>{% elif price_insight.diff > 0 %}<b>{{ price_insight.abs }}% above</b>{% else %}<b>In line with</b>{% endif %} the average rent in {{ price_insight.label }} (&#8377;{{ price_insight.avg }}, based on {{ price_insight.n }} other room{{ price_insight.n|pluralize }}).</span></div>
+        {% endif %}
+        <p style="margin-top:14px">{{ service.description|linebreaksbr }}</p>
+      </div>
+
+      {% if amenity_list %}
+      <div class="block"><h2>Amenities</h2><div class="amenity-grid">{% for a in amenity_list %}<div>{{ a.icon }} {{ a.name }}</div>{% endfor %}</div></div>
+      {% endif %}
+
+      {% if service.has_coordinates %}
+      <div class="block"><h2>Location</h2>
+        <div id="detail-map" class="map-box" data-lat="{{ service.latitude|stringformat:'s' }}" data-lng="{{ service.longitude|stringformat:'s' }}" data-title="{{ service.title }}"></div>
+        <div class="btn-row" style="margin-top:0">
+          <a class="btn btn-outline btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination={{ service.latitude|stringformat:'s' }},{{ service.longitude|stringformat:'s' }}&travelmode=driving&hl=en">Get directions &rarr;</a>
+          <a class="btn btn-outline btn-sm" target="_blank" rel="noopener" lang="hi" href="https://www.google.com/maps/dir/?api=1&destination={{ service.latitude|stringformat:'s' }},{{ service.longitude|stringformat:'s' }}&travelmode=driving&hl=hi">&#2342;&#2367;&#2358;&#2366;-&#2344;&#2367;&#2352;&#2381;&#2342;&#2375;&#2358; (&#2361;&#2367;&#2306;&#2342;&#2368;)</a>
+        </div>
+        <p class="muted small" style="margin-top:8px">Opens Google Maps in a new tab, starting from your current location.</p>
+      </div>
+      {% endif %}
+
+      <div class="block">
+        <h2>Hosted by</h2>
+        <div class="owner-card">
+          <span class="user-avatar">{{ service.provider.username|slice:":1"|upper }}</span>
+          <div class="grow">
+            <b>{{ service.provider.get_full_name|default:service.provider.username }}</b>
+            {% if service.provider.is_verified %}<span class="badge inline badge-verified">&#10003; Verified owner</span>{% endif %}
+            {% if service.provider.phone_verified %}<span class="badge inline badge-verified">&#128241; Phone verified</span>{% endif %}
+            <div class="muted small">Member since {{ owner_stats.since|date:"M Y" }} &middot; {{ owner_stats.rooms }} active listing{{ owner_stats.rooms|pluralize }}
+              {% if owner_stats.reply_hours %}&middot; Usually replies within {{ owner_stats.reply_hours }}h{% endif %}</div>
+          </div>
+          <div class="btn-row" style="margin:0">
+            <a class="btn btn-outline btn-sm" href="{% url 'services:owner_profile' service.provider.username %}">View profile</a>
+            {% if service.whatsapp_link %}<a href="{{ service.whatsapp_link }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">WhatsApp</a>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="block" id="reviews">
+        <h2>Reviews</h2>
+        {% if breakdown %}
+        <div class="rating-summary">
+          <div class="rating-big"><b>{{ service.rating_summary.avg }}</b><span class="stars">{% for s in service.full_stars_range %}&#9733;{% endfor %}{% for s in service.empty_stars_range %}&#9734;{% endfor %}</span><div class="muted small">{{ reviews|length }} review{{ reviews|length|pluralize }}</div></div>
+          <div>{% for row in breakdown %}<div class="bar-row"><span>{{ row.star }} &#9733;</span><div class="bar"><i style="width:{{ row.pct }}%"></i></div><span>{{ row.n }}</span></div>{% endfor %}</div>
+        </div>
+        {% endif %}
+        {% for review in reviews %}
+          <div class="review-card">
+            <div class="review-head"><span><b>{{ review.customer.first_name|default:review.customer.username }}</b> <span class="tag tag-success">Verified stay</span></span><span class="muted small">{{ review.created_at|date:"M j, Y" }}</span></div>
+            <span class="stars">{% for s in review.stars_range %}&#9733;{% endfor %}{% for s in review.empty_stars_range %}&#9734;{% endfor %}</span>
+            {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+          </div>
+        {% empty %}<p class="muted">No reviews yet &mdash; only tenants who visited or stayed can review, so every review is genuine.</p>{% endfor %}
+        {% if user.is_authenticated and not is_owner %}
+          <details class="report-box"><summary>{% if has_reported %}You've reported this listing &mdash; update report{% else %}&#9873; Report this listing{% endif %}</summary>
+            <form method="post" action="{% url 'services:report' service.pk %}">{% csrf_token %}
+              <div class="form-group"><label>Reason</label>{{ report_form.reason }}</div>
+              <div class="form-group"><label>Details</label>{{ report_form.details }}</div>
+              <button class="btn btn-outline btn-sm" type="submit">Send report</button></form></details>
+        {% endif %}
+      </div>
+    </div>
+
+    
+    <aside class="booking-panel" id="booking-panel">
+      <div class="price-top"><b>&#8377;{{ service.price|floatformat:"0g" }}</b><span class="muted">/ month</span></div>
+      <div class="tabs">
+        <button type="button" class="tab active" data-tab="rent">Book this room</button>
+        <button type="button" class="tab" data-tab="visit">Schedule a visit</button>
+      </div>
+
+      <div class="tab-pane" id="pane-rent">
+        <div class="price-box">
+          <div><span>Rent</span><strong>&#8377;{{ service.price|floatformat:"-2g" }}/mo</strong></div>
+          <div><span>Security deposit</span><strong>&#8377;{{ service.deposit_amount|floatformat:"-2g" }}</strong></div>
+          <div><span>Advance to reserve (online)</span><strong>{% if service.advance_amount > 0 %}&#8377;{{ service.advance_amount|floatformat:"-2g" }}{% else %}Free{% endif %}</strong></div>
+          <div class="total"><span>Estimated move-in cost</span><strong>&#8377;{{ move_in_total|floatformat:"-2g" }}</strong></div>
+        </div>
+        <p class="beds-line {% if service.is_full %}full{% endif %}">{% if service.is_full %}Fully booked right now{% else %}&#9679; {{ service.beds_left }} of {{ service.total_beds }} bed{{ service.total_beds|pluralize }} available{% endif %}</p>
+        {% if is_owner %}<p class="muted">This is your listing.</p>
+        {% elif not user.is_authenticated %}<a class="btn btn-primary btn-block btn-lg" href="{% url 'accounts:login' %}?next={{ request.path }}">Log in to book this room</a>
+        {% elif not user.is_customer %}<p class="muted">Only tenant accounts can book rooms.</p>
+        {% elif phone_required and not user.phone_verified %}<a class="btn btn-primary btn-block btn-lg" href="{% url 'accounts:verify' 'phone' %}?next={{ request.path }}">Verify your phone to book</a>
+        {% elif my_rental %}<div class="alert alert-success">You already have a booking here: <strong>{{ my_rental.get_status_display }}</strong>. <a href="{% url 'bookings:my_bookings' %}">View &rarr;</a></div>
+        {% elif service.is_full %}<p class="muted">All beds are taken. Save this room or set up a search alert and check back soon.</p>
+        {% else %}
+          <form method="post" action="{% url 'bookings:rent_room' service.pk %}">{% csrf_token %}
+            <div class="form-group"><label>Move-in date</label><input type="date" name="move_in_date" required min="{{ today|date:'Y-m-d' }}" max="{{ max_move_in|date:'Y-m-d' }}"></div>
+            <div class="form-group"><label>How long will you stay?</label><select name="stay_months">{% for m in month_options %}<option value="{{ m }}">{{ m }} month{{ m|pluralize }}</option>{% endfor %}</select></div>
+            <div class="form-group"><label>Message to owner (optional)</label><textarea name="note" rows="2" maxlength="500" placeholder="Hi, I'm a student at ... and would like to move in."></textarea></div>
+            <button class="btn btn-primary btn-block btn-lg" type="submit">Request to book</button>
+          </form>
+        {% endif %}
+        <ol class="how-steps"><li><b>Send a request</b> with your move-in date.</li><li><b>Owner approves</b> within 48 hours.</li><li><b>Pay the advance</b> online to lock the room.</li><li><b>Move in!</b> Refundable if you cancel 3+ days before.</li></ol>
+      </div>
+
+      <div class="tab-pane" id="pane-visit" hidden>
+        <div id="slot-panel" data-service-id="{{ service.id }}" data-can-book="{% if user.is_authenticated and user.is_customer %}1{% else %}0{% endif %}" data-login-url="{% url 'accounts:login' %}?next={{ request.path }}">
+          <h3>See it first <span class="pulse-dot"></span></h3>
+          <p class="muted small"><b>What's a visit slot?</b> A time when the owner is free to show you the room. Pick one, pay a small token{% if service.booking_amount > 0 %} (&#8377;{{ service.booking_amount|floatformat:"-2g" }}, refundable){% endif %}, and visit before you decide.</p>
+          {% if user.is_authenticated and user.is_customer %}<div id="csrf-holder" hidden>{% csrf_token %}</div>{% endif %}
+          <div id="slot-list">
+            {% for slot in slots %}
+              <div class="slot-row live" id="slot-{{ slot.id }}" data-sort="{{ slot.sort_key }}"><span>{{ slot.label }}</span>
+                {% if user.is_authenticated and user.is_customer %}<form method="post" action="{% url 'bookings:create_booking' slot.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Book visit</button></form>
+                {% elif user.is_authenticated %}<span class="muted">Tenant accounts only</span>
+                {% else %}<a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary btn-sm">Log in to book</a>{% endif %}</div>
+            {% endfor %}
+            <p class="muted" id="no-slots" {% if slots %}hidden{% endif %}>No open visit slots right now &mdash; message the owner or book the room directly.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  {% if similar %}
+  <section class="section" style="padding-top:36px"><div class="section-head"><h2>Similar rooms in {{ service.city }}</h2></div>
+    <div class="similar-grid">{% for service in similar %}{% include "services/_card.html" with show_favorite=True %}{% endfor %}</div></section>
+  {% endif %}
+</div>
+
+<div class="mobile-cta"><div><b>&#8377;{{ service.price|floatformat:"0g" }}</b> <span class="muted small">/ month</span></div><a class="btn btn-primary" href="#booking-panel">Book / Visit</a></div>
+{% endblock %}
+{% block extra_js %}
+{% if panoramas %}<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>{% endif %}
+<script src="{% static 'js/availability.js' %}"></script>
+<script src="{% static 'js/gallery.js' %}"></script>
+<script src="{% static 'js/tabs.js' %}"></script>
+{% if service.has_coordinates %}<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="{% static 'js/maps.js' %}"></script>{% endif %}
+{% endblock %}
